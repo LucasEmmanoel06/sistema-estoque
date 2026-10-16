@@ -1,0 +1,30 @@
+# [FASE 2] TAREFA - docker-compose.yml
+# Area sugerida: Dados/BD | Dificuldade: media-alta | Branch: feat/docker-compose
+# Commit: feat: adiciona docker compose com app e banco
+# Apague este bloco quando terminar. Este esqueleto ainda NAO sobe.
+#
+# TODO servico "db":
+#  1. POSTGRES_DB, POSTGRES_USER e POSTGRES_PASSWORD vindos do .env (${VAR}).
+#  2. Volume estoque_pgdata em /var/lib/postgresql/data (banco persistente).
+#  3. Montar backend/db.sql e backend/seed.sql (somente leitura) em
+#     /docker-entrypoint-initdb.d/ como 01-db.sql e 02-seed.sql.
+#  4. healthcheck com pg_isready. Nao publicar a porta 5432 no host.
+# TODO servico "app":
+#  5. depends_on do db com condition: service_healthy.
+#  6. POSTGRES_HOST = db (nome do servico, nao localhost); as demais
+#     variaveis e a SECRET_KEY vem do .env.
+#  7. Porta 8000:8000 e restart: unless-stopped.
+#
+# PRONTO QUANDO: cp .env.example .env, docker compose up --build sobe tudo,
+# o sistema abre em http://localhost:8000 e, depois de
+# docker compose down (sem -v) e up, os dados continuam la.
+
+services:
+  db:
+    image: postgres:16
+
+  app:
+    build: .
+
+volumes:
+  estoque_pgdata:

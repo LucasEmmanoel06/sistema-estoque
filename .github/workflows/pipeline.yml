@@ -1,0 +1,58 @@
+# [FASE 2] TAREFA - Pipeline do GitHub Actions (4 jobs, um por pessoa)
+# Branch de cada job: feat/pipeline-<job>
+# Commit: feat: adiciona job <job> na pipeline
+# Cada pessoa edita SO o seu job. Apague o bloco de TODO do job ao terminar.
+#
+# O esqueleto so roda manualmente (workflow_dispatch) para nao ficar vermelho.
+# Quando os 4 jobs estiverem prontos, trocar o gatilho por push na main e
+# pull_request para a main. Secrets do repositorio: POSTGRES_PASSWORD e
+# SECRET_KEY (usar como secrets.NOME, nunca escrever o valor).
+
+name: Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # ---- Area sugerida: QA/Testes | Dificuldade: media ----
+  # TODO: instalar dependencias e rodar os testes.
+  #  1. services: postgres:16 com POSTGRES_DB/USER/PASSWORD e health-cmd pg_isready.
+  #  2. env do job: POSTGRES_HOST=localhost e demais variaveis;
+  #     senha e SECRET_KEY vindas de secrets.
+  #  3. steps: checkout -> setup-python 3.12 -> pip install -r requirements.txt
+  #     -> criar as tabelas (psql < backend/db.sql) -> python -m pytest.
+  # PRONTO QUANDO: fica verde num PR e vermelho se um teste for quebrado.
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO job testes"
+
+  # ---- Area sugerida: Backend | Dificuldade: baixa-media ----
+  # TODO: build da imagem Docker (docker build -t sistema-estoque .).
+  # PRONTO QUANDO: fica verde num PR.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO job build"
+
+  # ---- Area sugerida: Frontend | Dificuldade: media ----
+  # TODO: SAST do codigo Python com Bandit (bandit -r backend) e auditoria
+  # das dependencias com pip-audit (pip-audit -r requirements.txt).
+  # Comece so reportando; guarde a saida como artefato (upload-artifact).
+  # PRONTO QUANDO: roda num PR e os alertas estao registrados em docs/fase2.md.
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO job sast"
+
+  # ---- Area sugerida: QA/Testes | Dificuldade: alta ----
+  # TODO: DAST com OWASP ZAP (action zaproxy/action-baseline).
+  #  1. criar o .env no runner a partir dos secrets e subir a app com
+  #     docker compose up -d --build --wait (depende do Dockerfile e do compose).
+  #  2. rodar o ZAP contra http://localhost:8000 e publicar o relatorio.
+  #  3. docker compose down -v no final (if: always()).
+  # PRONTO QUANDO: gera o relatorio e os alertas estao registrados em docs/fase2.md.
+  dast:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO job dast"

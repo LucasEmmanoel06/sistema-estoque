@@ -320,3 +320,20 @@ test: adiciona testes do cadastro
 | Backend | Vitor, Otávio |
 | Dados | Felipe Gomes |
 | Frontend | Nelson |
+
+<!--
+[FASE 2] TAREFA (Frontend): preencher as secoes abaixo DEPOIS que o compose e a
+pipeline funcionarem, testando os passos do zero. Tambem: trocar a URL do
+"git clone" pela do repositorio da equipe e atualizar a contagem de testes.
+Apague este comentario ao terminar.
+-->
+
+## Execução com Docker Compose
+
+_(a preencher: `cp .env.example .env`, `docker compose up --build`, endereços, como derrubar e apagar os dados)_
+
+## Pipeline (CI/CD)
+
+_(a preencher: o que cada job de `.github/workflows/pipeline.yml` faz)_
+
+Plano de tarefas, bugs e evidências da Fase 2: [docs/fase2.md](docs/fase2.md)
