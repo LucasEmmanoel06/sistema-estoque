@@ -27,9 +27,6 @@ jobs:
     steps:
       - run: echo "TODO job testes"
 
-  # ---- Area sugerida: Backend | Dificuldade: baixa-media ----
-  # TODO: build da imagem Docker (docker build -t sistema-estoque .).
-  # PRONTO QUANDO: fica verde num PR.
   build:
     runs-on: ubuntu-latest
     steps:
