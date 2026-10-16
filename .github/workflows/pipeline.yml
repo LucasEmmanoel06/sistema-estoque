@@ -36,15 +36,39 @@ jobs:
       - name: Build image
         run: docker build -t sistema-estoque .
 
-  # ---- Area sugerida: Frontend | Dificuldade: media ----
-  # TODO: SAST do codigo Python com Bandit (bandit -r backend) e auditoria
-  # das dependencias com pip-audit (pip-audit -r requirements.txt).
-  # Comece so reportando; guarde a saida como artefato (upload-artifact).
-  # PRONTO QUANDO: roda num PR e os alertas estao registrados em docs/fase2.md.
   sast:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "TODO job sast"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit pip-audit
+
+      - name: SAST - Bandit
+        run: bandit -r backend -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Dependency audit - pip-audit
+        run: pip-audit -r requirements.txt --format json --output pip-audit-report.json
+        continue-on-error: true
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-reports
+          path: |
+            bandit-report.json
+            pip-audit-report.json
+          if-no-files-found: warn
 
   # ---- Area sugerida: QA/Testes | Dificuldade: alta ----
   # TODO: DAST com OWASP ZAP (action zaproxy/action-baseline).
