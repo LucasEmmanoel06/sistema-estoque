@@ -35,11 +35,6 @@ jobs:
     steps:
       - run: echo "TODO job build"
 
-  # ---- Area sugerida: Frontend | Dificuldade: media ----
-  # TODO: SAST do codigo Python com Bandit (bandit -r backend) e auditoria
-  # das dependencias com pip-audit (pip-audit -r requirements.txt).
-  # Comece so reportando; guarde a saida como artefato (upload-artifact).
-  # PRONTO QUANDO: roda num PR e os alertas estao registrados em docs/fase2.md.
   sast:
     runs-on: ubuntu-latest
     steps:
