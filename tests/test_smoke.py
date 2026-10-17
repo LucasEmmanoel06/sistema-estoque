@@ -1,31 +1,81 @@
-# [FASE 2] TAREFA - testes de fumaca (aplicacao ja no ar)
-# Area sugerida: QA/Testes | Dificuldade: media | Branch: test/smoke
-# Commit: test: adiciona testes de fumaca contra a aplicacao no ar
-# Apague este bloco quando terminar.
-#
-# Diferenca para os testes que ja existem: aqui NAO se importa o backend.
-# Fala-se com a aplicacao por HTTP (httpx), como um usuario faria, usando
-# BASE_URL (padrao http://localhost:8000). Rodar com a app no ar
-# (docker compose up). Tirar o @pytest.mark.skip e escrever o corpo.
+"""Testes de fumaca: falam com a aplicacao no ar por HTTP, como um usuario.
+
+Nao importam o backend. Rodar com a app no ar (docker compose up):
+    python -m pytest tests/test_smoke.py -v
+Outro endereco: defina BASE_URL (ex.: BASE_URL=http://localhost:8080).
+"""
 
 import os
+import uuid
 
-import pytest
+import httpx
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
-@pytest.mark.skip(reason="TODO fase 2")
 def test_health_responde_ok():
-    """GET /api/health -> 200 e {"status": "ok"}."""
+    resposta = httpx.get(f"{BASE_URL}/api/health", timeout=10)
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"status": "ok"}
 
 
-@pytest.mark.skip(reason="TODO fase 2")
 def test_pagina_de_login_e_servida():
-    """GET / -> 200 com HTML."""
+    resposta = httpx.get(f"{BASE_URL}/", timeout=10)
+
+    assert resposta.status_code == 200
+    assert "text/html" in resposta.headers["content-type"]
+    assert "<html" in resposta.text.lower()
 
 
-@pytest.mark.skip(reason="TODO fase 2")
 def test_fluxo_cadastro_login_produto():
-    """Cadastra usuario (e-mail unico), faz login, cria um produto e o encontra
-    na listagem. Usar httpx.Client(base_url=BASE_URL) para manter o cookie."""
+    email = f"smoke-{uuid.uuid4().hex}@example.com"
+    senha = "Smoke1234"
+    nome_produto = f"Produto smoke {uuid.uuid4().hex[:8]}"
+
+    # httpx.Client guarda o cookie de sessao entre as chamadas
+    with httpx.Client(base_url=BASE_URL, timeout=10) as cliente:
+        cadastro = cliente.post(
+            "/api/auth/register",
+            json={"nome": "Usuario Smoke", "email": email, "senha": senha},
+        )
+        assert cadastro.status_code == 201
+
+        login = cliente.post(
+            "/api/auth/login", json={"email": email, "senha": senha}
+        )
+        assert login.status_code == 200
+
+        criado = cliente.post(
+            "/api/produtos",
+            json={
+                "nome": nome_produto,
+                "descricao": "Criado pelo teste de fumaca",
+                "preco": "9.90",
+                "quantidade": 3,
+            },
+        )
+        assert criado.status_code == 201
+        produto_id = criado.json()["id"]
+
+        # A listagem e paginada (max. 100 por pagina) e o estoque e
+        # compartilhado, entao percorre as paginas ate achar o produto.
+        encontrado = False
+        for pagina in range(1, 51):
+            listagem = cliente.get(
+                "/api/produtos", params={"page": pagina, "limit": 100}
+            )
+            assert listagem.status_code == 200
+
+            itens = listagem.json()
+
+            if any(item["id"] == produto_id for item in itens):
+                encontrado = True
+                break
+            if len(itens) < 100:
+                break
+
+        assert encontrado, "produto criado nao apareceu na listagem"
+
+        # Limpeza: remove o produto criado pelo teste
+        cliente.delete(f"/api/produtos/{produto_id}")
