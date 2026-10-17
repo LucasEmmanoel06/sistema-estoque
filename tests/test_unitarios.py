@@ -1,42 +1,74 @@
-# [FASE 2] TAREFA - testes unitarios (nao precisam de banco)
-# Area sugerida: QA/Testes | Dificuldade: baixa | Branch: test/unitarios
-# Commit: test: adiciona testes unitarios de senha e validacoes
-# Apague este bloco quando terminar.
-#
-# Como fazer: tirar o @pytest.mark.skip e escrever o corpo de cada teste.
-#  - Senha: importar gerar_hash_senha e verificar_senha de backend.security.
-#  - Validacoes: UsuarioCadastro (backend/auth.py) e ProdutoCadastro
-#    (backend/produtos.py); casos invalidos com pytest.raises(ValidationError).
-#
-# ATENCAO: backend/auth.py importa backend/database.py, que le variaveis de
-# ambiente no import (KeyError se faltar). Para o teste rodar sem .env, no
-# topo deste arquivo, ANTES de importar backend, usar os.environ.setdefault
-# para POSTGRES_HOST/PORT/DB/USER/PASSWORD (valores ficticios) e SECRET_KEY
-# (32+ caracteres). O setdefault nao sobrescreve as variaveis reais do CI.
+"""Testes unitarios: nao precisam de banco nem da aplicacao no ar."""
 
-import pytest
+import os
+
+# backend/auth.py importa backend/database.py, que le estas variaveis no import.
+# setdefault nao sobrescreve as variaveis reais (.env ou CI).
+os.environ.setdefault("POSTGRES_HOST", "localhost")
+os.environ.setdefault("POSTGRES_PORT", "5432")
+os.environ.setdefault("POSTGRES_DB", "teste")
+os.environ.setdefault("POSTGRES_USER", "teste")
+os.environ.setdefault("POSTGRES_PASSWORD", "teste")
+os.environ.setdefault("SECRET_KEY", "x" * 32)
+
+import pytest  # noqa: E402
+from pydantic import ValidationError  # noqa: E402
+
+from backend.auth import UsuarioCadastro  # noqa: E402
+from backend.produtos import ProdutoCadastro  # noqa: E402
+from backend.security import gerar_hash_senha, verificar_senha  # noqa: E402
 
 
-@pytest.mark.skip(reason="TODO fase 2")
+def _usuario(**mudancas):
+    dados = {"nome": "Ana", "email": "ana@email.com", "senha": "Senha1234"}
+    dados.update(mudancas)
+    return UsuarioCadastro(**dados)
+
+
 def test_hash_nao_guarda_senha_em_texto_puro():
-    """O hash e diferente da senha; verificar_senha aceita a certa e recusa a errada."""
+    senha = "Senha1234"
+    senha_hash = gerar_hash_senha(senha)
+
+    assert senha_hash != senha
+    assert senha not in senha_hash
+    assert verificar_senha(senha, senha_hash) is True
+    assert verificar_senha("SenhaErrada1", senha_hash) is False
 
 
-@pytest.mark.skip(reason="TODO fase 2")
 def test_senha_acima_de_72_bytes_gera_erro():
-    """gerar_hash_senha levanta ValueError."""
+    with pytest.raises(ValueError):
+        gerar_hash_senha("A" * 73)
 
 
-@pytest.mark.skip(reason="TODO fase 2")
-def test_senha_fraca_e_recusada():
-    """UsuarioCadastro: curta, sem maiuscula, sem minuscula ou sem numero."""
+@pytest.mark.parametrize(
+    "senha",
+    [
+        "Ab1",           # curta
+        "senha1234",     # sem maiuscula
+        "SENHA1234",     # sem minuscula
+        "SenhaSemNum",   # sem numero
+    ],
+)
+def test_senha_fraca_e_recusada(senha):
+    with pytest.raises(ValidationError):
+        _usuario(senha=senha)
 
 
-@pytest.mark.skip(reason="TODO fase 2")
+def test_senha_forte_e_aceita():
+    assert _usuario(senha="Senha1234").senha == "Senha1234"
+
+
 def test_email_e_normalizado_para_minusculas():
-    """'  Ana@Email.com ' vira 'ana@email.com'."""
+    assert _usuario(email="  Ana@Email.com ").email == "ana@email.com"
 
 
-@pytest.mark.skip(reason="TODO fase 2")
 def test_produto_recusa_preco_ou_quantidade_negativos():
-    """ProdutoCadastro: preco -0.01 e quantidade -1 falham; sem quantidade, vale 0."""
+    with pytest.raises(ValidationError):
+        ProdutoCadastro(nome="Caneta", preco="-0.01", quantidade=1)
+
+    with pytest.raises(ValidationError):
+        ProdutoCadastro(nome="Caneta", preco="2.50", quantidade=-1)
+
+    # Sem quantidade, vale 0
+    produto = ProdutoCadastro(nome="Caneta", preco="2.50")
+    assert produto.quantidade == 0
