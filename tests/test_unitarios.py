@@ -2,6 +2,9 @@
 
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # backend/auth.py importa backend/database.py, que le estas variaveis no import.
 # setdefault nao sobrescreve as variaveis reais (.env ou CI).
 os.environ.setdefault("POSTGRES_HOST", "localhost")
