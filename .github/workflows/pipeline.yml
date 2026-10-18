@@ -8,6 +8,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t sistema-estoque .
+        
   testes:
     runs-on: ubuntu-latest
 
@@ -58,15 +67,6 @@ jobs:
       # O smoke precisa da aplicacao no ar (so existe no job dast), entao e ignorado aqui
       - name: Rodar testes
         run: python -m pytest --ignore=tests/test_smoke.py -v
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build image
-        run: docker build -t sistema-estoque .
 
   sast:
     runs-on: ubuntu-latest
