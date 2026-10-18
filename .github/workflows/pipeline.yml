@@ -1,13 +1,3 @@
-# [FASE 2] TAREFA - Pipeline do GitHub Actions (4 jobs, um por pessoa)
-# Branch de cada job: feat/pipeline-<job>
-# Commit: feat: adiciona job <job> na pipeline
-# Cada pessoa edita SO o seu job. Apague o bloco de TODO do job ao terminar.
-#
-# O esqueleto so roda manualmente (workflow_dispatch) para nao ficar vermelho.
-# Quando os 4 jobs estiverem prontos, trocar o gatilho por push na main e
-# pull_request para a main. Secrets do repositorio: POSTGRES_PASSWORD e
-# SECRET_KEY (usar como secrets.NOME, nunca escrever o valor).
-
 name: Pipeline
 
 on:
