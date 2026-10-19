@@ -330,10 +330,99 @@ Apague este comentario ao terminar.
 
 ## Execução com Docker Compose
 
-_(a preencher: `cp .env.example .env`, `docker compose up --build`, endereços, como derrubar e apagar os dados)_
+Sobe o banco e a aplicação juntos, sem instalar Python nem criar as tabelas à mão. Você precisa só de **Git** e **Docker** (com o Docker Compose, que já vem no Docker Desktop e no pacote `docker-compose-plugin` do Linux).
+
+### 1. Configurar o `.env`
+
+```bash
+cp .env.example .env
+```
+
+No Windows (PowerShell): `copy .env.example .env`.
+
+Os valores do `.env.example` já funcionam para rodar local. Repare que `POSTGRES_HOST=db`: dentro do compose, o banco é encontrado pelo nome do serviço, não por `localhost`. A `SECRET_KEY` do exemplo é só para desenvolvimento. Para gerar uma sua:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### 2. Subir
+
+```bash
+docker compose up --build
+```
+
+| Serviço | O que faz |
+| --- | --- |
+| `db` | PostgreSQL 16. Na primeira subida, roda o `backend/db.sql` (tabelas) e o `backend/seed.sql` (5 produtos de exemplo) sozinho. Os dados ficam no volume `estoque_pgdata` |
+| `app` | Monta a imagem do `Dockerfile` e sobe a API na porta 8000. Só inicia depois que o banco responde (healthcheck) |
+
+O terminal fica preso mostrando os logs. Para subir em segundo plano, use `docker compose up --build -d` e veja os logs com `docker compose logs -f`.
+
+### 3. Acessar
+
+| Endereço | O que abre |
+| --- | --- |
+| http://localhost:8000 | Sistema (tela de login) |
+| http://localhost:8000/docs | Documentação interativa da API |
+| http://localhost:8000/api/health | Teste rápido, responde `{"status":"ok"}` |
+
+O banco não fica exposto na máquina (o serviço `db` não tem `ports`), só a aplicação. Para abrir o `psql` dentro dele:
+
+```bash
+docker compose exec db psql -U estoque_app -d sistema_estoque
+```
+
+Com a aplicação no ar, os testes de fumaça conferem o fluxo completo pelo HTTP (precisa do venv da seção [Como rodar](#como-rodar)):
+
+```bash
+python -m pytest tests/test_smoke.py -v
+```
+
+### 4. Derrubar e apagar os dados
+
+| Comando | O que faz |
+| --- | --- |
+| `docker compose stop` | Para os containers. Volta com `docker compose start` |
+| `docker compose down` | Remove os containers e a rede. **Os dados continuam** no volume |
+| `docker compose down -v` | Remove também o volume: **apaga todos os usuários e produtos** |
+
+O `db.sql` e o `seed.sql` só rodam quando o volume está vazio. Mudou algum deles ou quer o banco zerado com os produtos de exemplo? Rode `docker compose down -v` e suba de novo.
+
+| Erro | Causa e solução |
+| --- | --- |
+| Porta 8000 já em uso | Tem um `uvicorn` local ou outro container rodando. Pare ele ou troque para `"8080:8000"` no `docker-compose.yml` |
+| `SECRET_KEY deve ter pelo menos 32 caracteres` nos logs do `app` | Falta o `.env` ou a chave está curta. Volte ao passo 1 |
+| Mudou usuário ou senha do banco no `.env` e o `app` não conecta | O volume foi criado com os valores antigos. Rode `docker compose down -v` e suba de novo |
 
 ## Pipeline (CI/CD)
 
-_(a preencher: o que cada job de `.github/workflows/pipeline.yml` faz)_
+A pipeline fica em [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml) e roda no GitHub Actions:
+
+- a cada push na `main`;
+- a cada Pull Request para a `main`;
+- manualmente, pela aba **Actions** do GitHub (botão **Run workflow**).
+
+Os 4 jobs rodam em paralelo, cada um numa máquina `ubuntu-latest` nova:
+
+| Job | O que faz | Quebra a pipeline se... |
+| --- | --- | --- |
+| `build` | Monta a imagem Docker a partir do `Dockerfile` (`docker build`) | A imagem não monta |
+| `testes` | Sobe um PostgreSQL 16 como `service`, instala o Python 3.12 e as dependências, cria as tabelas com o `db.sql` e roda o `pytest` (todos os testes, menos o `test_smoke.py`) | Algum teste falha |
+| `sast` | Análise estática de segurança: o **Bandit** procura falhas no código de `backend/` e o **pip-audit** procura vulnerabilidades conhecidas nas versões do `requirements.txt`. Os relatórios em JSON ficam no artefato `sast-reports` | Nunca. Os achados são só relatados, para análise |
+| `dast` | Cria o `.env` a partir dos secrets, sobe tudo com `docker compose up --build`, roda os testes de fumaça (`test_smoke.py`) contra a aplicação no ar e depois o **OWASP ZAP** (baseline), que testa a aplicação rodando como um atacante faria. O relatório fica no artefato `zap-report`. No fim, derruba tudo com `docker compose down -v` | A aplicação não sobe ou um teste de fumaça falha. Os achados do ZAP não quebram |
+
+Se o `dast` falhar, o passo **Logs dos containers** mostra a saída do `docker compose logs`.
+
+Os relatórios (`sast-reports` e `zap-report`) ficam para baixar na página da execução, em **Actions**, na parte de **Artifacts**.
+
+### Secrets necessários
+
+Configurados em **Settings > Secrets and variables > Actions** do repositório. Sem eles, os jobs `testes` e `dast` falham.
+
+| Secret | Usado em | Para que serve |
+| --- | --- | --- |
+| `POSTGRES_PASSWORD` | `testes`, `dast` | Senha do banco criado na pipeline |
+| `SECRET_KEY` | `testes`, `dast` | Assina o cookie de sessão (32+ caracteres) |
 
 Plano de tarefas, bugs e evidências da Fase 2: [docs/fase2.md](docs/fase2.md)
