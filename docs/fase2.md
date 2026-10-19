@@ -42,18 +42,18 @@ Cada arquivo marcado com `[FASE 2] TAREFA` tem no topo o que fazer e o critério
 
 Ordem sugerida: Dockerfile, compose e job `testes` primeiro, porque destravam o teste de ponta a ponta (`dast` e smoke).
 
-## Pistas de bugs e melhorias (a confirmar)
+## Pistas de bugs e melhorias auditadas
 
-Levantadas lendo o código, ainda não testadas. Confirmem rodando; se for real, vira card. Apaguem esta tabela se preferirem descobrir sozinhos.
+As pistas abaixo foram confirmadas e as correções estão registradas na tabela de evidências.
 
 | Pista | Onde |
 | --- | --- |
-| O exemplo da `SECRET_KEY` no `.env.example` tem 46 caracteres e passa na validação de 32. Quem não trocar fica com uma chave pública. | `.env.example`, `backend/main.py` |
-| `https_only=False` fixo no cookie de sessão. | `backend/main.py` |
-| `/api/health` não testa o banco. | `backend/main.py` |
-| Provavelmente faltam cabeçalhos de segurança HTTP (o ZAP deve apontar). | `backend/main.py` |
-| `requirements.txt` mistura dependências de produção e de teste. | `requirements.txt` |
-| README e `docs/arquitetura.md` divergem do código (rotas de produto, arquivos citados que não existem, URL do `git clone`). | `README.md`, `docs/` |
+| A chave do `.env.example` podia ser usada sem substituição. | `.env.example`, `backend/main.py` |
+| `https_only=False` era fixo no cookie de sessão. | `backend/main.py` |
+| `/api/health` não testava o banco. | `backend/main.py` |
+| Faltavam cabeçalhos de segurança HTTP. | `backend/main.py` |
+| `requirements.txt` misturava dependências de produção e de teste. | `requirements.txt` |
+| README e `docs/arquitetura.md` divergiam do código. | `README.md`, `docs/` |
 
 ## Registro de bugs, alertas e melhorias
 
@@ -61,7 +61,12 @@ Uma linha por item resolvido. É o que vai para o pitch.
 
 | Tipo (bug / segurança / melhoria) | O que foi feito | PR |
 | --- | --- | --- |
-| | | |
+| melhoria | Docker Compose aguarda o banco e a aplicação possui healthcheck; a persistência usa o volume `estoque_pgdata`. | implementado |
+| segurança | O cookie de sessão respeita `SESSION_HTTPS_ONLY` e a API envia cabeçalhos HTTP de segurança. | implementado |
+| melhoria | `/api/health` verifica também a conexão com o PostgreSQL e responde `503` quando o banco está indisponível. | implementado |
+| melhoria | Dependências de produção e de teste foram separadas em `requirements.txt` e `requirements-dev.txt`. | implementado |
+| bug | Corrigida a exibição de estoque vazio e a duplicação de listeners de busca após recarregar a tabela. | implementado |
+| melhoria | README, arquitetura e pipeline foram alinhados ao repositório, aos endpoints e ao fluxo Docker Compose. | implementado |
 
 ## Prints para o pitch
 

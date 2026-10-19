@@ -5,10 +5,6 @@ pydantic==2.14.1
 starlette==1.8.0
 uvicorn[standard]==0.54.0
 
-# Testes
-pytest==9.1.1
-httpx==0.28.1
-
 # Banco de dados PostgreSQL
 sqlalchemy==2.1.4
 psycopg[binary]==3.3.6
