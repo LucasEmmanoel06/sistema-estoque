@@ -50,8 +50,8 @@ Você precisa de: **Git**, **Python 3.12+** e **Docker** (só para subir o banco
 ### 1. Baixar o projeto
 
 ```bash
-git clone https://github.com/Fililpe/Projeto-DevOps-para-projetos-web.git
-cd Projeto-DevOps-para-projetos-web
+git clone https://github.com/LucasEmmanoel06/sistema-estoque.git
+cd sistema-estoque
 ```
 
 ### 2. Instalar as dependências
@@ -59,7 +59,7 @@ cd Projeto-DevOps-para-projetos-web
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
 O `.venv` é um ambiente isolado só deste projeto. Sempre que abrir um terminal novo, ative de novo com `source .venv/bin/activate`. O terminal mostra `(.venv)` no começo da linha quando está ativo.
@@ -122,7 +122,7 @@ python -m uvicorn backend.main:app --reload
 | --- | --- |
 | http://localhost:8000 | Sistema (tela de login) |
 | http://localhost:8000/docs | Documentação interativa da API |
-| http://localhost:8000/api/health | Teste rápido, responde `{"status":"ok"}` |
+| http://localhost:8000/api/health | Verifica a API e o banco, responde `{"status":"ok","database":"ok"}` |
 
 Não existe usuário pronto: crie um pela tela de cadastro.
 
@@ -156,11 +156,11 @@ Com o banco ligado, o `.env` preenchido e o venv ativo:
 python -m pytest -v
 ```
 
-O resultado esperado é `9 passed`.
+O resultado esperado é `18 passed` (os testes de fumaça precisam da aplicação em execução e do banco).
 
 | Arquivo | O que testa |
 | --- | --- |
-| `tests/test_health.py` | A API está no ar |
+| `tests/test_health.py` | A API e o banco estão disponíveis |
 | `tests/test_database.py` | A API consegue falar com o PostgreSQL |
 | `tests/test_auth.py` | Cadastro, e-mail repetido, senha errada, login e logout |
 | `tests/test_produtos.py` | Bloqueio sem login, cadastrar, listar, paginação, editar, excluir, preço e quantidade negativos |
@@ -197,7 +197,7 @@ A documentação interativa, com todos os campos e onde dá para testar cada rot
 
 | Método | Rota | Login? | O que faz | Respostas |
 | --- | --- | --- | --- | --- |
-| GET | `/api/health` | Não | Verifica se a API está no ar | 200 |
+| GET | `/api/health` | Não | Verifica a API e o banco | 200 ou 503 |
 | POST | `/api/auth/register` | Não | Cadastra um usuário | 201, 409, 422 |
 | POST | `/api/auth/login` | Não | Faz login e cria a sessão | 200, 401 |
 | POST | `/api/auth/logout` | Não | Encerra a sessão | 200 |
@@ -239,6 +239,7 @@ Todas ficam no `.env` (modelo em `.env.example`). Nenhum valor real vai para o r
 | `POSTGRES_USER` | Sim | `estoque_app` | Usuário do banco |
 | `POSTGRES_PASSWORD` | Sim | (segredo) | Senha do banco |
 | `SECRET_KEY` | Sim | (segredo, 32+ caracteres) | Assina o cookie de sessão |
+| `SESSION_HTTPS_ONLY` | Não | `false` | Exige HTTPS no cookie de sessão; use `true` em produção |
 
 ## Estrutura do projeto
 
@@ -265,7 +266,7 @@ Todas ficam no `.env` (modelo em `.env.example`). Nenhum valor real vai para o r
 | Não há edição nem exclusão de usuário | Só cadastro, login e logout |
 | Os testes usam o banco real e não limpam os dados | Cada execução deixa usuários e produtos de teste no banco |
 | Não há migrations | Qualquer mudança no banco é feita à mão no `db.sql` |
-| O cookie de sessão não exige HTTPS (`https_only=False`) | Certo para rodar local. Em produção com HTTPS, mudar para `True` em `backend/main.py` |
+| O cookie de sessão não exige HTTPS por padrão | Certo para rodar local. Em produção com HTTPS, use `SESSION_HTTPS_ONLY=true` |
 | O front busca todos os produtos e filtra no navegador | Com muitos produtos, a tela fica lenta |
 | O front depende do Bootstrap via CDN | Sem internet, as telas aparecem sem estilo |
 | A doc de regras cita baixa de estoque e controle de concorrência (RN04 e RN07) | Ainda não implementado. Hoje a quantidade é só editada direto |
@@ -276,7 +277,7 @@ Todas ficam no `.env` (modelo em `.env.example`). Nenhum valor real vai para o r
 O que vocês vão precisar saber para containerizar e automatizar:
 
 - **Como a aplicação inicia:** `python -m uvicorn backend.main:app`. Dentro de um container, use `--host 0.0.0.0` para aceitar conexões de fora.
-- **Dependências:** todas em `requirements.txt`, com versão fixa.
+- **Dependências:** produção em `requirements.txt` e testes em `requirements-dev.txt`, todas com versão fixa.
 - **Banco:** a API só lê as variáveis do `.env` (ou do ambiente). No Docker Compose, o `POSTGRES_HOST` passa a ser o nome do serviço do banco, não `localhost`.
 - **Tabelas:** o `db.sql` e o `seed.sql` podem ser montados em `/docker-entrypoint-initdb.d/` na imagem oficial do PostgreSQL para rodar sozinhos na primeira subida.
 - **Testes:** precisam de um PostgreSQL rodando com as tabelas criadas. No GitHub Actions, dá para usar um `service` de PostgreSQL.
@@ -321,13 +322,6 @@ test: adiciona testes do cadastro
 | Dados | Felipe Gomes |
 | Frontend | Nelson |
 
-<!--
-[FASE 2] TAREFA (Frontend): preencher as secoes abaixo DEPOIS que o compose e a
-pipeline funcionarem, testando os passos do zero. Tambem: trocar a URL do
-"git clone" pela do repositorio da equipe e atualizar a contagem de testes.
-Apague este comentario ao terminar.
--->
-
 ## Execução com Docker Compose
 
 Sobe o banco e a aplicação juntos, sem instalar Python nem criar as tabelas à mão. Você precisa só de **Git** e **Docker** (com o Docker Compose, que já vem no Docker Desktop e no pacote `docker-compose-plugin` do Linux).
@@ -340,7 +334,7 @@ cp .env.example .env
 
 No Windows (PowerShell): `copy .env.example .env`.
 
-Os valores do `.env.example` já funcionam para rodar local. Repare que `POSTGRES_HOST=db`: dentro do compose, o banco é encontrado pelo nome do serviço, não por `localhost`. A `SECRET_KEY` do exemplo é só para desenvolvimento. Para gerar uma sua:
+Os valores do `.env.example` servem como modelo. Antes de subir, gere e substitua a `SECRET_KEY`; a aplicação recusa a chave pública do exemplo. Repare que `POSTGRES_HOST=db`: dentro do compose, o banco é encontrado pelo nome do serviço, não por `localhost`. Para gerar uma sua:
 
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -365,7 +359,7 @@ O terminal fica preso mostrando os logs. Para subir em segundo plano, use `docke
 | --- | --- |
 | http://localhost:8000 | Sistema (tela de login) |
 | http://localhost:8000/docs | Documentação interativa da API |
-| http://localhost:8000/api/health | Teste rápido, responde `{"status":"ok"}` |
+| http://localhost:8000/api/health | Verifica a API e o banco, responde `{"status":"ok","database":"ok"}` |
 
 O banco não fica exposto na máquina (o serviço `db` não tem `ports`), só a aplicação. Para abrir o `psql` dentro dele:
 
@@ -409,7 +403,7 @@ Os 4 jobs rodam em paralelo, cada um numa máquina `ubuntu-latest` nova:
 | --- | --- | --- |
 | `build` | Monta a imagem Docker a partir do `Dockerfile` (`docker build`) | A imagem não monta |
 | `testes` | Sobe um PostgreSQL 16 como `service`, instala o Python 3.12 e as dependências, cria as tabelas com o `db.sql` e roda o `pytest` (todos os testes, menos o `test_smoke.py`) | Algum teste falha |
-| `sast` | Análise estática de segurança: o **Bandit** procura falhas no código de `backend/` e o **pip-audit** procura vulnerabilidades conhecidas nas versões do `requirements.txt`. Os relatórios em JSON ficam no artefato `sast-reports` | Nunca. Os achados são só relatados, para análise |
+| `sast` | Análise estática de segurança: o **Bandit** procura falhas no código de `backend/` e o **pip-audit** procura vulnerabilidades conhecidas nas dependências de `requirements-dev.txt`. Os relatórios em JSON ficam no artefato `sast-reports` | Nunca. Os achados são só relatados, para análise |
 | `dast` | Cria o `.env` a partir dos secrets, sobe tudo com `docker compose up --build`, roda os testes de fumaça (`test_smoke.py`) contra a aplicação no ar e depois o **OWASP ZAP** (baseline), que testa a aplicação rodando como um atacante faria. O relatório fica no artefato `zap-report`. No fim, derruba tudo com `docker compose down -v` | A aplicação não sobe ou um teste de fumaça falha. Os achados do ZAP não quebram |
 
 Se o `dast` falhar, o passo **Logs dos containers** mostra a saída do `docker compose logs`.

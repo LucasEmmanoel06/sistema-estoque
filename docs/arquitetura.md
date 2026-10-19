@@ -26,19 +26,21 @@ Navegador  ->  FastAPI (porta 8000)  ->  PostgreSQL (porta 5432)
 ## Escopo fechado
 
 - Banco: 2 tabelas, `usuarios` e `produtos`.
-- Features: cadastro, login e produtos (cadastrar e consultar).
+- Features: cadastro, login e produtos (cadastrar, consultar, editar e excluir).
 - Estoque compartilhado: todo usuario logado ve todos os produtos.
 
 ## Rotas combinadas
 
 | Metodo | Rota | Dono |
 | --- | --- | --- |
-| GET | `/api/health` | Tech Lead (pronta) |
+| GET | `/api/health` | Tech Lead (API e PostgreSQL) |
 | POST | `/api/auth/register` | Backend |
 | POST | `/api/auth/login` | Backend |
 | POST | `/api/auth/logout` | Backend |
 | GET | `/api/produtos` | Backend |
 | POST | `/api/produtos` | Backend |
+| PUT | `/api/produtos/{id}` | Backend |
+| DELETE | `/api/produtos/{id}` | Backend |
 
 ## Estrutura de pastas
 

@@ -80,13 +80,13 @@ function renderizaTabela(produtos) {
 function configuraBusca(produtos) {
   const inputBusca = document.getElementById("busca");
 
-  inputBusca.addEventListener("input", () => {
+  inputBusca.oninput = () => {
     const termo = normaliza(inputBusca.value.trim());
     const filtrados = produtos.filter((produto) =>
       normaliza(produto.nome).includes(termo),
     );
     renderizaTabela(filtrados);
-  });
+  };
 
   function normaliza(texto) {
     return texto
@@ -124,7 +124,7 @@ async function buscaTodosProdutos() {
 }
 
 function temProdutos(produtos) {
-  return !Array.isArray(produtos) || produtos.length > 0;
+  return Array.isArray(produtos) && produtos.length > 0;
 }
 
 async function recarregaTabelaProdutos() {
@@ -133,6 +133,8 @@ async function recarregaTabelaProdutos() {
 
     if (!temProdutos(produtos)) {
       msgVazia.classList.remove("d-none");
+      renderizaResumo([]);
+      document.getElementById("tabelaProdutos").innerHTML = "";
     } else {
       msgVazia.classList.add("d-none");
       renderizaResumo(produtos);

@@ -17,7 +17,7 @@ def test_health_responde_ok():
     resposta = httpx.get(f"{BASE_URL}/api/health", timeout=10)
 
     assert resposta.status_code == 200
-    assert resposta.json() == {"status": "ok"}
+    assert resposta.json() == {"status": "ok", "database": "ok"}
 
 
 def test_pagina_de_login_e_servida():
